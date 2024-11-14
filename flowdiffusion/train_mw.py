@@ -1,3 +1,4 @@
+import os
 from goal_diffusion import GoalGaussianDiffusion, Trainer
 from unet import UnetMW as Unet
 from transformers import CLIPTextModel, CLIPTokenizer
@@ -9,7 +10,7 @@ import argparse
 def main(args):
     valid_n = 1
     sample_per_seq = 8
-    target_size = (128, 128)
+    target_size = (256, 256)
 
     if args.mode == 'inference':
         train_set = valid_set = [None] # dummy
@@ -50,15 +51,15 @@ def main(args):
         train_set=train_set,
         valid_set=valid_set,
         train_lr=1e-4,
-        train_num_steps =60000,
+        train_num_steps =600000,
         save_and_sample_every =2500,
         ema_update_every = 10,
         ema_decay = 0.999,
-        train_batch_size =16,
+        train_batch_size =args.batch_size,
         valid_batch_size =32,
         gradient_accumulate_every = 1,
         num_samples=valid_n, 
-        results_folder ='../results/mw',
+        results_folder ='../results/m_bsz6',
         fp16 =True,
         amp=True,
     )
@@ -88,8 +89,10 @@ def main(args):
         output = trainer.sample(image.unsqueeze(0), [text], batch_size, guidance_weight).cpu()
         output = output[0].reshape(-1, 3, *target_size)
         output = torch.cat([image.unsqueeze(0), output], dim=0)
+
         root, ext = splitext(args.inference_path)
-        output_gif = root + '_out.gif'
+        prompt = args.text
+        output_gif = root + prompt + '_out.gif'
         output = (output.cpu().numpy().transpose(0, 2, 3, 1).clip(0, 1) * 255).astype('uint8')
         imageio.mimsave(output_gif, output, duration=200, loop=1000)
         print(f'Generated {output_gif}')
@@ -102,6 +105,7 @@ if __name__ == "__main__":
     parser.add_argument('-t', '--text', type=str, default=None) # set to text to generate samples
     parser.add_argument('-n', '--sample_steps', type=int, default=100) # set to number of steps to sample
     parser.add_argument('-g', '--guidance_weight', type=int, default=0) # set to positive to use guidance
+    parser.add_argument('-b', '--batch_size', type=int, default=48, help="batch size in AVDC  gpu_nums*batch size per card") # set to positive to use guidance
     args = parser.parse_args()
     if args.mode == 'inference':
         assert args.checkpoint_num is not None

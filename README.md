@@ -1,5 +1,5 @@
 ## AVDC
-
+## Experiment code of AVDC on other baseline by Xiaowei
 The official codebase for training video policies in AVDC
 
 NEWS: We have released another repository for running our Meta-World and iTHOR experiments [here](https://github.com/flow-diffusion/AVDC_experiments/)!
